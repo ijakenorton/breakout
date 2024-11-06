@@ -14,7 +14,7 @@ make
 make run
 ```
 
-Unsure how far I will take this, currently just runs one basic level.
+There are now two basic levels, and paddle rotation with better bouncing!
 
 https://github.com/user-attachments/assets/299c6d04-158d-4487-8d47-b80c799bf549
 
