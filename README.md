@@ -16,5 +16,5 @@ make run
 
 There are now two basic levels, and paddle rotation with better bouncing!
 
-https://github.com/user-attachments/assets/299c6d04-158d-4487-8d47-b80c799bf549
+https://github.com/user-attachments/assets/2b197878-801c-4fb0-85e5-31daf8f85568
 
