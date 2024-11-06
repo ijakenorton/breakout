@@ -1,7 +1,15 @@
 #include "raylib.h"
+#include "raymath.h"
 #include "types.h"
 #include <math.h>
 #include <stdio.h>
+
+float dist(Vector2 point1, Vector2 point2)
+{
+	float distX = point1.x - point2.x;
+	float distY = point1.y - point2.y;
+	return sqrtf((distX * distX) + (distY * distY));
+}
 
 bool pointPoint(Vector2 point1, Vector2 point2)
 {
@@ -9,13 +17,6 @@ bool pointPoint(Vector2 point1, Vector2 point2)
 		return true;
 	}
 	return false;
-}
-
-float dist(Vector2 point1, Vector2 point2)
-{
-	float distX = point1.x - point2.x;
-	float distY = point1.y - point2.y;
-	return sqrtf((distX * distX) + (distY * distY));
 }
 
 bool point_circle(Vector2 point, Ball c)
@@ -210,6 +211,82 @@ bool line_circle(Vector2 l_start, Vector2 l_end, Ball c)
 	}
 	return false;
 }
+
+void handle_paddle_collision(Ball *ball, Paddle *paddle)
+{
+	// Get paddle corners and center in local space
+	Vector2 paddle_center = { paddle->rec->x, paddle->rec->y };
+
+	// Convert ball position to paddle's local space
+	Vector2 local_ball = Vector2Subtract(ball->centre, paddle_center);
+	local_ball = Vector2Rotate(local_ball, -paddle->rotation * DEG2RAD);
+
+	// Determine which side of the paddle was hit
+	Vector2 normal;
+
+	// Local space collision checks
+	float abs_x = fabsf(local_ball.x);
+	float abs_y = fabsf(local_ball.y);
+
+	if (abs_x > abs_y) {
+		// Side collision
+		normal = (Vector2){ (local_ball.x > 0) ? 1.0f : -1.0f, 0 };
+	} else {
+		// Top/bottom collision
+		normal = (Vector2){ 0, (local_ball.y > 0) ? 1.0f : -1.0f };
+	}
+
+	// Rotate normal back to world space
+	normal = Vector2Rotate(normal, paddle->rotation * DEG2RAD);
+	normal = Vector2Normalize(normal);
+
+	// Apply reflection
+	ball->velocity = Vector2Reflect(ball->velocity, normal);
+}
+/* Vector2 get_paddle_bounce(Ball *ball, Paddle *paddle) */
+/* { */
+/* 	// Get paddle's normal vector (perpendicular to paddle surface) */
+/* 	float paddle_angle = paddle->rotation * DEG2RAD; */
+
+/* 	// Create unit vector pointing up */
+/* 	Vector2 up = { 0.0f, -1.0f }; */
+
+/* 	// Rotate it by paddle angle to get paddle normal */
+/* 	Vector2 paddle_normal = Vector2Rotate(up, paddle_angle); */
+
+/* 	// Normalize in case of any floating point drift */
+/* 	paddle_normal = Vector2Normalize(paddle_normal); */
+
+/* 	// Use Raylib's reflect function with normalized vectors */
+/* 	return Vector2Reflect(ball->velocity, paddle_normal); */
+/* } */
+
+/* // If you want to add hit position influence: */
+/* Vector2 get_paddle_bounce_with_position(Ball *ball, Paddle *paddle) */
+/* { */
+/* 	// Get basic reflection */
+/* 	Vector2 reflected = get_paddle_bounce(ball, paddle); */
+
+/* 	// Calculate hit position relative to paddle center (-1 to 1) */
+/* 	Vector2 paddle_center = { paddle->rec->x, paddle->rec->y }; */
+/* 	float hit_position = (ball->centre.x - paddle_center.x) / */
+/* 			     (paddle->rec->width / 2.0f); */
+/* 	hit_position = Clamp(hit_position, -1.0f, 1.0f); */
+
+/* 	// Add some horizontal influence based on hit position */
+/* 	float angle_adjustment = hit_position * (PI / 6.0f); // Max ±30 degrees */
+
+/* 	// Rotate the reflected vector */
+/* 	return Vector2Rotate(reflected, angle_adjustment); */
+/* } */
+
+/* Vector2 bounce(Vector2 n, Vector2 v) */
+/* { */
+/*         float dot = -2.0f * Vector2DotProduct(n, v); */
+/*         Vector2Scale(-2.0f * Vector2DotProduct(n, v), n) */
+/*         Ve */
+
+/* } */
 
 /* int main(void) */
 /* { */

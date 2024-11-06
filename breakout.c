@@ -6,8 +6,8 @@
 #define ARENA_IMPLEMENTATION
 #include "arena.h"
 
-float screen_width = 1920.0f / 2;
-float screen_height = 1080.0f / 2;
+float screen_width = 1920.0f;
+float screen_height = 1080.0f;
 
 static Arena default_arena = { 0 };
 /* static Arena temporary_arena = { 0 }; */
@@ -37,10 +37,8 @@ void init_level_two(Level *level_two, State *state)
 	*level_two->ball = (Ball){
 		.centre.x = screen_width / 2.0,
 		.centre.y = screen_height - (screen_height / 4),
-		.velocity.x = 2.0,
-		.velocity.y = 4.0,
-		.direction.x = 1,
-		.direction.y = 1,
+		.velocity.x = 1.0,
+		.velocity.y = 1.0,
 		.radius = 20.0,
 		.color = BLUE,
 	};
@@ -125,11 +123,9 @@ void init_level_one(Level *level_one, State *state)
 	*level_one->ball = (Ball){
 		.centre.x = screen_width / 2.0,
 		.centre.y = screen_height - (screen_height / 4),
-		.velocity.x = 1.0,
-		.velocity.y = 2.0,
-		.direction.x = 1,
-		.direction.y = 1,
-		.radius = 20.0,
+		.velocity.x = 0.0f,
+		.velocity.y = 1.0f,
+		.radius = 20.0f,
 		.color = BLUE,
 	};
 
@@ -254,19 +250,6 @@ int main(void)
 	while (!WindowShouldClose()) {
 		// update
 		// ------------------------------------------------
-		if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) {
-			state.cl->paddle->rec->x += 10.0f;
-		}
-		if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
-			state.cl->paddle->rec->x -= 10.0f;
-		}
-
-		if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) {
-			state.cl->paddle->rotation += 1.0f;
-		}
-		if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) {
-			state.cl->paddle->rotation -= 1.0f;
-		}
 		// Bit of a hack to fix space being triggered multiple times
 		// Handles pause
 		if (IsKeyReleased(KEY_SPACE)) {
@@ -326,19 +309,19 @@ int main(void)
 				switch (line.d) {
 				case TOP:
 					printf("top\n");
-					state.cl->ball->direction.y *= -1.0;
+					state.cl->ball->velocity.y *= -1.0;
 					break;
 				case BOTTOM:
 					printf("bottom\n");
-					state.cl->ball->direction.y *= -1.0;
+					state.cl->ball->velocity.y *= -1.0;
 					break;
 				case LEFT:
 					printf("left\n");
-					state.cl->ball->direction.x *= -1.0;
+					state.cl->ball->velocity.x *= -1.0;
 					break;
 				case RIGHT:
 					printf("right\n");
-					state.cl->ball->direction.x *= -1.0;
+					state.cl->ball->velocity.x *= -1.0;
 					break;
 				}
 
@@ -350,21 +333,77 @@ int main(void)
 			circle_paddle(*state.cl->ball, *state.cl->paddle);
 
 		if (paddle_collision) {
-			state.cl->ball->direction.y = -1.0;
+			Vector2 paddle_center = { state.cl->paddle->rec->x,
+						  state.cl->paddle->rec->y };
+
+			// Convert ball's position relative to paddle center
+			Vector2 relative_pos = Vector2Subtract(
+				state.cl->ball->centre, paddle_center);
+			Vector2 local_pos = Vector2Rotate(
+				relative_pos,
+				-state.cl->paddle->rotation * DEG2RAD);
+
+			// If ball is more to the side than top/bottom, treat as side collision
+			if (fabsf(local_pos.x) >
+			    state.cl->paddle->rec->width / 2) {
+				// Side collision - just reverse x velocity
+				state.cl->ball->velocity.y *= -1.0f;
+			} else {
+				// Top/bottom collision - use normal reflection
+				Vector2 paddle_normal = Vector2Rotate(
+					(Vector2){ 0, -1 },
+					state.cl->paddle->rotation * DEG2RAD);
+				paddle_normal = Vector2Normalize(paddle_normal);
+				state.cl->ball->velocity =
+					Vector2Reflect(state.cl->ball->velocity,
+						       paddle_normal);
+			}
+			/* Vector2 paddle_normal = Vector2Rotate( */
+			/* 	(Vector2){ 0, -1 }, */
+			/* 	state.cl->paddle->rotation * DEG2RAD); */
+
+			/* paddle_normal = Vector2Normalize(paddle_normal); */
+
+			/* state.cl->ball->velocity = Vector2Reflect( */
+			/* 	state.cl->ball->velocity, paddle_normal); */
 		}
 
+		// Handle left and right walls
 		if ((state.cl->ball->centre.x >=
 		     (screen_width - state.cl->ball->radius)) ||
 		    (state.cl->ball->centre.x <= state.cl->ball->radius)) {
-			state.cl->ball->direction.x *= -1.0f;
+			state.cl->ball->velocity.x *= -1.0f;
 		}
 
+		// Handle top wall
+		if ((state.cl->ball->centre.y <= state.cl->ball->radius)) {
+			state.cl->ball->velocity.y *= -1.0f;
+		}
+
+		// Handle bottom wall
 		if (state.cl->ball->centre.y >=
 		    (screen_height - state.cl->ball->radius)) {
 			state.loss = true;
 		}
-		if ((state.cl->ball->centre.y <= state.cl->ball->radius)) {
-			state.cl->ball->direction.y *= -1.0f;
+
+		if (!state.paused) {
+			state.cl->ball->centre =
+				Vector2Add(state.cl->ball->centre,
+					   state.cl->ball->velocity);
+		}
+
+		if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) {
+			state.cl->paddle->rec->x += 10.0f;
+		}
+		if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
+			state.cl->paddle->rec->x -= 10.0f;
+		}
+
+		if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) {
+			state.cl->paddle->rotation += 1.0f;
+		}
+		if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) {
+			state.cl->paddle->rotation -= 1.0f;
 		}
 
 		if (end_counter != 0) {
@@ -376,15 +415,6 @@ int main(void)
 		} else {
 			state.cl->ball->velocity.x = 0.0f;
 			state.cl->ball->velocity.y = 0.0f;
-		}
-
-		if (!state.paused) {
-			state.cl->ball->centre.x +=
-				(state.cl->ball->velocity.x *
-				 state.cl->ball->direction.x);
-			state.cl->ball->centre.y +=
-				(state.cl->ball->velocity.y *
-				 state.cl->ball->direction.y);
 		}
 
 		// ----------------------------------------------

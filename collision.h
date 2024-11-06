@@ -13,3 +13,4 @@ bool line_point(Vector2 l_start, Vector2 l_end, Vector2 p);
 bool line_circle(Vector2 l_start, Vector2 l_end, Ball c);
 Line_id which_line(Ball c, Rectangle r, Line_id *line);
 bool circle_paddle(Ball c, Paddle p);
+void handle_paddle_collision(Ball *ball, Paddle *paddle);

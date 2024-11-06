@@ -55,8 +55,6 @@ typedef struct {
 typedef struct {
 	Vector2 centre;
 	Vector2 velocity;
-	Vector2 direction;
-
 	float radius;
 	Color color;
 } Ball;
